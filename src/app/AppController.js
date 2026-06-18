@@ -12,7 +12,7 @@ import humidityIcon from "../assets/humidity.svg";
 const left = document.querySelector(".left");
 const right = document.querySelector(".right");
 
-const submit = document.querySelector(".submit");
+const form = document.querySelector("form");
 
 const input = document.querySelector(".search-input");
 
@@ -79,6 +79,10 @@ const getWeatherIcon = (condition) => {
     background = rain;
   } else if (condition.includes("clear-day")) {
     background = sunSvg;
+  } else if (condition.includes("sun")) {
+    background = sunBehindCloud;
+  } else if (condition.includes("overcast")) {
+    background = overcast;
   } else {
     background = sunSvg;
   }
@@ -92,9 +96,7 @@ function fahrenheitToCelsius(fahrenheit) {
 
 const forecastCon = document.querySelector(".forecast");
 
-let weatherData;
-
-const todaysWeather = () => {
+const todaysWeather = (weatherData) => {
   const condition = weatherData.condition.conditions;
   const temp = weatherData.condition.temp;
   const icon = weatherData.condition.icon;
@@ -104,12 +106,9 @@ const todaysWeather = () => {
 
   const date = getDate();
 
-  const todayWeatherContainer = document.createElement("div");
-  const todaysWeathercard = document.createElement("div");
-  todaysWeathercard.classList.add("todaysWeatherCard");
+  const todaysWeathercard = document.querySelector(".todaysWeatherCard");
   const backgroundCode = getBackground(condition);
   const weatherIcon = getWeatherIcon(icon);
-  todayWeatherContainer.style.background = backgroundCode;
 
   todaysWeathercard.innerHTML = `
     <div class="weather-card">
@@ -136,16 +135,10 @@ const todaysWeather = () => {
       </div>
     </div>
   `;
-
-  todayWeatherContainer.appendChild(todaysWeathercard);
-  left.appendChild(todayWeatherContainer);
 };
 
-const weatherDetails = () => {
-  const weatherDetailCard = document.createElement("div");
-  weatherDetailCard.classList.add("weather-detail-card");
-
-  console.log(weatherData);
+const weatherDetails = (weatherData) => {
+  const weatherDetailCard = document.querySelector(".weather-detail-card");
 
   const humidity = weatherData.condition.humidity;
   const windspeed = weatherData.condition.windspeed;
@@ -174,31 +167,23 @@ const weatherDetails = () => {
     </ul>
   </div>
   `;
-
-  right.appendChild(weatherDetailCard);
 };
 
-const displayFiveDaysForecast = () => {
-  weatherData.fiveDaysForecast.map((item) => {
-    let img;
+const displayFiveDaysForecast = (data) => {
+  const forecastCaintainer = document.querySelector(".forecast-container");
+
+  forecastCaintainer.innerHTML = " ";
+
+  data.map((item) => {
     const content = document.createElement("div");
     content.classList.add("forecast-content");
+
     const dates = item.datetime;
     const temp = item.temp;
     const condition = item.conditions.toLowerCase();
+    const icon = item.conditions.icon;
     const celciusTemp = fahrenheitToCelsius(temp);
-
-    if (condition.includes("rain")) {
-      img = cloud1;
-    } else if (condition.includes("sun")) {
-      img = sunBehindCloud;
-    } else if (condition.includes("overcast")) {
-      img = overcast;
-    } else if (condition.includes("clear")) {
-      img = sunSvg;
-    } else {
-      img = cloudyDay;
-    }
+    const img = getWeatherIcon(condition);
 
     const date = daysOfWeek[new Date(dates).getDay()];
 
@@ -208,23 +193,29 @@ const displayFiveDaysForecast = () => {
             <p>${celciusTemp}&deg;C</p>
           </div>`;
 
-    forecastCon.append(content);
+    forecastCaintainer.appendChild(content);
   });
 };
 
-submit.addEventListener("click", async (e) => {
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
   const value = input.value.toLowerCase().trim();
 
   if (!value) {
     return;
   }
 
-  weatherData = await fetchWeather(value);
+  const weatherData = await fetchWeather(value);
 
-  weatherDetails();
-  todaysWeather();
-  displayFiveDaysForecast();
+  if (!weatherData) return;
+
+  const days = weatherData?.fiveDaysForecast;
+
+  weatherDetails(weatherData);
+  todaysWeather(weatherData);
+  displayFiveDaysForecast(days);
 
   input.value = "";
-  input.style.display = "none";
+  // input.style.display = "none";
 });
